@@ -61,7 +61,7 @@
 #define ALARM_DET 2
 #define EEPROM_MAGIC_NUMBER 0xbad0
 
-volatile byte hours = 12;
+volatile byte hours = 1;
 volatile byte minutes = 0;
 volatile byte seconds = 0;
 volatile boolean pm = false;
@@ -80,7 +80,7 @@ byte buttonPins[4] = {MIN_BUTTON_PIN, HOUR_BUTTON_PIN, DET_BUTTON_PIN, ALARM_BUT
 byte buttonState[4] = {HIGH, HIGH, HIGH, HIGH};
 unsigned long buttonChange[4] = {0L, 0L, 0L, 0L};
 
-byte alarmHours = 12;
+byte alarmHours = 1;
 byte alarmMinutes = 0;
 boolean alarmpm = false;
 byte alarmMode = ALARM_OFF;
@@ -271,30 +271,32 @@ void loop() {
     if ((!displayAlarmTime) && (!displayCountdown)) {
       hours++;
       if (hours == 12) {
-	pm = !pm;
+      	pm = true;
       }
-      if (hours == 13) {
-	hours = 1;
+      if (hours == 24) {
+	      hours = 0;
+      	pm = false;
       }
       if (pm) {
-	digitalWrite(LED_PM, HIGH);
+      	digitalWrite(LED_PM, HIGH);
       } else {
-	digitalWrite(LED_PM, LOW);
+	      digitalWrite(LED_PM, LOW);
       }
     }
     if (displayAlarmTime) {
       // setting the alarm
       alarmHours++;
       if (alarmHours == 12) {
-	alarmpm = !alarmpm;
+      	alarmpm = true;
       }
-      if (alarmHours == 13) {
-	alarmHours = 1;
+      if (alarmHours == 24) {
+	      alarmHours = 0;
+        alarmpm = false;
       }
       if (alarmpm) {
-	digitalWrite(LED_PM, HIGH);
+      	digitalWrite(LED_PM, HIGH);
       } else {
-	digitalWrite(LED_PM, LOW);
+	      digitalWrite(LED_PM, LOW);
       }
       snoozeHours = alarmHours;
       snoozeMinutes = alarmMinutes;
@@ -302,15 +304,15 @@ void loop() {
     }
     if (displayCountdown) {
       if (!buttonPressed(ALARM_BUTTON)) {
-	if (countdownSeconds < 5940) {
-	  countdownSeconds += 60;
-	  countdownDuration += 60;
-	}
+        if (countdownSeconds < 5940) {
+          countdownSeconds += 60;
+          countdownDuration += 60;
+        }
       } else {
-	if (countdownSeconds >= 60 ) {
-	  countdownSeconds -= 60;
-	  countdownDuration -= 60;
-	}
+        if (countdownSeconds >= 60 ) {
+          countdownSeconds -= 60;
+          countdownDuration -= 60;
+        }
       }
     }
   } else {
@@ -327,7 +329,7 @@ void loop() {
     if ((!displayAlarmTime) && (!displayCountdown)) {
       minutes++;
       if (minutes == 60) {
-	minutes = 0;
+	      minutes = 0;
       }
       seconds = 0;
       TCNT1 = TIMER1_SECOND_START;
@@ -336,7 +338,7 @@ void loop() {
       // setting the alarm
       alarmMinutes++;
       if (alarmMinutes == 60) {
-	alarmMinutes = 0;
+      	alarmMinutes = 0;
       }
       snoozeHours = alarmHours;
       snoozeMinutes = alarmMinutes;
@@ -344,15 +346,15 @@ void loop() {
     }
     if (displayCountdown) {
       if (!buttonPressed(ALARM_BUTTON)) {
-	if (countdownSeconds < 5999) {
-	  countdownSeconds++;
-	  countdownDuration++;
-	}
+        if (countdownSeconds < 5999) {
+          countdownSeconds++;
+          countdownDuration++;
+        }
       } else {
-	if (countdownSeconds > 0) {
-	  countdownSeconds--;
-	  countdownDuration--;
-	}
+        if (countdownSeconds > 0) {
+          countdownSeconds--;
+          countdownDuration--;
+        }
       }	
     }
   }
@@ -361,10 +363,10 @@ void loop() {
     if (displayAlarmTime) {
       alarmMode++;
       if (alarmMode > ALARM_DET) {
-	alarmMode = ALARM_OFF;
+      	alarmMode = ALARM_OFF;
       }
       if (alarmMode == ALARM_OFF) {
-	snoozeActivated = false;
+      	snoozeActivated = false;
       }
       return;
     }
@@ -388,7 +390,6 @@ void loop() {
       countdown();
     }
   }
-
 }
 
 void ringAlarm() {
@@ -402,30 +403,30 @@ void ringAlarm() {
     for(int i=0;i<toneLoopCount;i++) {
       PORTB |= (1 << 3);
       if (buttonPressed(ALARM_BUTTON)) {
-	alarmRinging = false;
-	snoozeActivated = false;
-	break;
+        alarmRinging = false;
+        snoozeActivated = false;
+        break;
       }
       delayMicroseconds(us);
       PORTB &= ~(1 << 3);
       if (buttonPressed(DET_BUTTON)) {
-	alarmRinging = false;
-	snooze();
-	break;
+        alarmRinging = false;
+        snooze();
+        break;
       }
       delayMicroseconds(us);
     }
     
     for(int i=0;i<pauseLoopCount;i++) {
       if (buttonPressed(ALARM_BUTTON)) {
-	alarmRinging = false;
-	snoozeActivated = false;
-	break;
+        alarmRinging = false;
+        snoozeActivated = false;
+        break;
       }
       if (buttonPressed(DET_BUTTON)) {
-	alarmRinging = false;
-	snooze();
-	break;
+        alarmRinging = false;
+        snooze();
+        break;
       }
     }
   } // while (alarmRinging)
@@ -442,10 +443,11 @@ void snooze() {
     snoozeMinutes -= 60;
     snoozeHours++;
     if (snoozeHours == 12) {
-      snoozepm = !snoozepm;
+      snoozepm = true;
     }
-    if (snoozeHours == 13) {
-      snoozeHours = 1;
+    if (snoozeHours == 24) {
+      snoozeHours = 0;
+      snoozepm = false;
     }
   }
 }
@@ -707,11 +709,6 @@ ISR(TIMER2_OVF_vect) {
     displayMinutes = 0;
   }
 
-  if ((displayHours < 10) && (!displayCountdown) && (!displayZeros)) {
-    nDigits = 3;
-  }
-
-
   if (++currentDigit > (nDigits-1)) {
     currentDigit = 0;
   }
@@ -765,10 +762,11 @@ ISR(TIMER1_OVF_vect) {
       minutes = 0;
       hours++;
       if (hours == 12) {
-	pm = !pm;
+	      pm = true;
       }
-      if (hours == 13) {
-	hours = 1;
+      if (hours == 24) {
+      	hours = 0;
+	      pm = false;
       }
     }
   }
